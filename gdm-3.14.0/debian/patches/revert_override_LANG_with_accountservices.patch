@@ -1,0 +1,44 @@
+From 46753c6afeb0f9a9e76df4434fbe0421790135f8 Mon Sep 17 00:00:00 2001
+From: Tim Lunn <tim@feathertop.org>
+Date: Mon, 6 Oct 2014 12:35:03 +1100
+Subject: [PATCH] Revert "session: override LANG with user configured language"
+
+This reverts commit db94ed31b79c90528d922d705ff3484216817415.
+---
+ daemon/gdm-session.c | 12 ------------
+ 1 file changed, 12 deletions(-)
+
+diff --git a/daemon/gdm-session.c b/daemon/gdm-session.c
+index 319b363..b89e1a3 100644
+--- a/daemon/gdm-session.c
++++ b/daemon/gdm-session.c
+@@ -2396,7 +2396,6 @@ set_up_session_environment (GdmSession *self)
+ {
+         GdmSessionDisplayMode display_mode;
+         gchar *desktop_names;
+-        const char *locale;
+ 
+         gdm_session_set_environment_variable (self,
+                                               "GDMSESSION",
+@@ -2415,17 +2414,6 @@ set_up_session_environment (GdmSession *self)
+ 
+         set_up_session_language (self);
+ 
+-        locale = get_default_language_name (self);
+-
+-        if (locale != NULL && locale[0] != '\0') {
+-                gdm_session_set_environment_variable (self,
+-                                                      "LANG",
+-                                                      locale);
+-                gdm_session_set_environment_variable (self,
+-                                                      "GDM_LANG",
+-                                                      locale);
+-        }
+-
+         display_mode = gdm_session_get_display_mode (self);
+         if (display_mode == GDM_SESSION_DISPLAY_MODE_REUSE_VT) {
+                 gdm_session_set_environment_variable (self,
+-- 
+2.1.0
+
+

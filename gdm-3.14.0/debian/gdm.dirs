@@ -1,0 +1,9 @@
+etc/pam.d
+etc/gdm/Init
+etc/gdm/PostLogin
+etc/gdm/PreSession
+etc/gdm/PostSession
+etc/dbus-1/system.d
+etc/dconf/db/gdm.d
+usr/share/gdm/BuiltInSessions
+var/lib/gdm/.local/share/applications

@@ -1,0 +1,87 @@
+#!/usr/bin/make -f
+
+DEB_BUILD_PARALLEL = yes
+
+include /usr/share/cdbs/1/rules/autoreconf.mk
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/gnome.mk
+include /usr/share/gnome-pkg-tools/1/rules/uploaders.mk
+include /usr/share/gnome-pkg-tools/1/rules/gnome-version.mk
+include /usr/share/gnome-pkg-tools/1/rules/patch-translations.mk
+-include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
+
+# List any files which are not installed
+include /usr/share/cdbs/1/rules/utils.mk
+DEB_DH_INSTALL_ARGS := --list-missing
+DEB_DH_INSTALLINIT_ARGS := --no-start
+
+GNOME_MODULE := gdm
+
+DEB_CONFIGURE_SCRIPT_ENV += X_PATH="/usr/bin" \
+			    X_SERVER_PATH="/usr/bin" \
+			    X_SERVER="/usr/bin/Xorg"
+
+DEB_CONFIGURE_EXTRA_FLAGS += --enable-ipv6=yes \
+		--with-at-spi-registryd-directory=/usr/lib/at-spi \
+		--with-check-accelerated-directory=/usr/lib/gnome-session \
+		--without-console-kit \
+		--with-systemd \
+		--with-systemdsystemunitdir=/lib/systemd/system/ \
+		--with-authentication-agent-directory=/usr/lib/policykit-1-gnome \
+		--with-sysconfsubdir=gdm \
+		--with-working-directory=/var/lib/gdm \
+		--with-defaults-conf=/usr/share/gdm/defaults.conf \
+		--with-lang-file=/etc/default/locale \
+		--with-initial-vt=7 \
+		--disable-split-authentication \
+                --enable-wayland-support
+
+DEB_CONFIGURE_EXTRA_FLAGS += --libdir=\$${prefix}/lib/$(DEB_HOST_MULTIARCH)
+
+ifneq (,$(filter debug,$(DEB_BUILD_OPTIONS)))
+	DEB_CONFIGURE_EXTRA_FLAGS += --enable-debug
+endif
+
+ifeq (linux,$(DEB_HOST_ARCH_OS))
+	DEB_CONFIGURE_EXTRA_FLAGS += --with-plymouth
+else
+	DEB_CONFIGURE_EXTRA_FLAGS += --with-vt-switch-workaround
+endif
+
+binary-install/gdm::
+	dh_installpam -pgdm --name=gdm-autologin
+	rm -rf debian/gdm/run
+	rm -rf debian/gdm/usr/include
+	rm -rf debian/gdm/usr/lib/pkgconfig
+	# rm -vf debian/gdm/usr/share/gdm/autostart/LoginWindow/gnome-session-check-accelerated.desktop
+	install -m 644 debian/xterm.desktop debian/gdm/usr/share/gdm/greeter/applications/xterm.desktop
+	install -m 644 debian/xsession.desktop debian/gdm/usr/share/gdm/greeter/applications/xsession.desktop
+	# we install onboard (debian/onboard.desktop), and do not have gok
+	install -m 644 debian/onboard.desktop debian/gdm/usr/share/gdm/greeter/applications/
+	rm -vf debian/gdm/usr/share/gdm/greeter/applications/gok.desktop
+	# Not sure why the following files are still shipped (https://bugzilla.gnome.org/show_bug.cgi?id=710847)
+	rm -f debian/gdm/usr/share/gdm/greeter/applications/gdm-simple-greeter.desktop
+	rm -f debian/gdm/usr/share/gdm/greeter/applications/polkit-gnome-authentication-agent-1.desktop
+
+INFILES := $(wildcard debian/*.desktop.in)
+OUTFILES := $(INFILES:.desktop.in=.desktop)
+
+%.desktop: %.desktop.in
+	intltool-merge -d debian/po-up $< $@
+
+build/gdm:: $(OUTFILES)
+
+MANPAGES := $(patsubst %.pod,%,$(wildcard debian/*.pod))
+common-build-arch:: $(MANPAGES)
+
+clean::
+	rm -f $(MANPAGES)
+	rm -f $(OUTFILES) config.guess config.sub
+	rm -f data/gdm.schemas data/gdm.schemas.in
+
+%: %.pod
+	pod2man --section=$(shell echo $@ | sed 's/.*\.//') \
+		--release="GNOME $(DEB_GNOME_VERSION)" \
+		--center="Debian GNU/Linux" \
+		$< \
+		| sed -e 's/debian:://' >$@

@@ -1,0 +1,17 @@
+etc/*
+lib/systemd/system/
+usr/bin/gdm-screenshot
+usr/lib/gdm/gdm-*
+usr/sbin/gdm
+usr/share/pixmaps/
+usr/share/gnome-session/
+usr/share/locale/
+usr/share/icons/
+usr/share/help/
+usr/share/gdm/
+usr/share/dconf
+var/*
+debian/greeter.gsettings                etc/gdm
+debian/default.desktop                  usr/share/gdm/BuiltInSessions
+debian/insserv.conf.d                   etc
+

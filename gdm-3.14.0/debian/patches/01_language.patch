@@ -1,0 +1,17 @@
+GNOME #649413
+
+Index: gdm-3.7.2/daemon/gdm-session.c
+===================================================================
+--- gdm-3.7.2.orig/daemon/gdm-session.c	2012-11-14 17:37:25.000000000 +1300
++++ gdm-3.7.2/daemon/gdm-session.c	2012-12-04 10:38:32.311982391 +1300
+@@ -2248,9 +2248,7 @@ set_up_session_language (GdmSession *self)
+ 
+         environment = g_listenv ();
+         for (i = 0; environment[i] != NULL; i++) {
+-                if (strcmp (environment[i], "LANG") != 0 &&
+-                    strcmp (environment[i], "LANGUAGE") != 0 &&
+-                    !g_str_has_prefix (environment[i], "LC_")) {
++                if (strcmp (environment[i], "GDM_LANG") != 0) {
+                     continue;
+                 }
+ 

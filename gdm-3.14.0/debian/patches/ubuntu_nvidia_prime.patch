@@ -1,0 +1,131 @@
+From 65f5c9101d3fa73ac3152b50ae34eb093e601505 Mon Sep 17 00:00:00 2001
+From: Tim Lunn <tim@feathertop.org>
+Date: Sat, 22 Mar 2014 10:23:12 +1100
+Subject: [PATCH] Add hook to run prime-offload (as root)
+
+---
+ daemon/gdm-simple-slave.c |  1 +
+ data/Makefile.am          | 12 ++++++++++++
+ data/Prime                |  6 ++++++
+ 3 files changed, 19 insertions(+)
+ create mode 100644 data/Prime
+
+Index: gdm-3.12.2/data/Makefile.am
+===================================================================
+--- gdm-3.12.2.orig/data/Makefile.am
++++ gdm-3.12.2/data/Makefile.am
+@@ -10,6 +10,8 @@ SUBDIRS =			\
+ initdir = $(gdmconfdir)/Init
+ postdir = $(gdmconfdir)/PostSession
+ predir = $(gdmconfdir)/PreSession
++primedir = $(gdmconfdir)/Prime
++primeoffdir = $(gdmconfdir)/PrimeOff
+ postlogindir = $(gdmconfdir)/PostLogin
+ workingdir = $(GDM_WORKING_DIR)
+ xauthdir = $(GDM_XAUTH_DIR)
+@@ -164,6 +166,8 @@ EXTRA_DIST +=			\
+ 	Xsession.in 		\
+ 	Init.in 		\
+ 	PreSession.in 		\
++	Prime			\
++    PrimeOff        \
+ 	PostSession.in 		\
+ 	PostLogin 		\
+ 	org.gnome.login-screen.gschema.xml.in \
+@@ -212,6 +216,8 @@ uninstall-hook:
+ 	$(DESTDIR)$(initdir)/Default \
+ 	$(DESTDIR)$(postlogindir)/Default.sample \
+ 	$(DESTDIR)$(predir)/Default \
++	$(DESTDIR)$(primedir)/Default \
++	$(DESTDIR)$(primeoffdir)/Default \
+ 	$(DESTDIR)$(postdir)/Default \
+ 	$(DESTDIR)$(sysconfdir)/dconf/db/gdm \
+ 	$(DESTDIR)$(sysconfdir)/dconf/profile/gdm \
+@@ -262,6 +268,24 @@ install-data-hook: gdm.conf-custom Xsess
+ 	fi
+ 	$(INSTALL_SCRIPT) PreSession $(DESTDIR)$(predir)/Default
+ 
++	if test '!' -d $(DESTDIR)$(primedir); then \
++		$(mkinstalldirs) $(DESTDIR)$(primedir); \
++		chmod 755 $(DESTDIR)$(primedir); \
++	fi
++	-if test -f $(DESTDIR)$(primedir)/Default; then \
++		cp -f $(DESTDIR)$(primedir)/Default $(DESTDIR)$(primedir)/Default.orig; \
++	fi
++	$(INSTALL_SCRIPT) Prime $(DESTDIR)$(primedir)/Default
++
++	if test '!' -d $(DESTDIR)$(primeoffdir); then \
++		$(mkinstalldirs) $(DESTDIR)$(primeoffdir); \
++		chmod 755 $(DESTDIR)$(primeoffdir); \
++	fi
++	-if test -f $(DESTDIR)$(primeoffdir)/Default; then \
++		cp -f $(DESTDIR)$(primeoffdir)/Default $(DESTDIR)$(primeoffdir)/Default.orig; \
++	fi
++	$(INSTALL_SCRIPT) PrimeOff $(DESTDIR)$(primeoffdir)/Default
++
+ 	if test '!' -d $(DESTDIR)$(postdir); then \
+ 		$(mkinstalldirs) $(DESTDIR)$(postdir); \
+ 		chmod 755 $(DESTDIR)$(postdir); \
+Index: gdm-3.12.2/data/Prime
+===================================================================
+--- /dev/null
++++ gdm-3.12.2/data/Prime
+@@ -0,0 +1,6 @@
++#!/bin/sh
++
++primeoffload=/sbin/prime-offload
++if [ -f "$primeoffload" ]; then
++    $primeoffload
++fi
+Index: gdm-3.12.2/daemon/gdm-slave.c
+===================================================================
+--- gdm-3.12.2.orig/daemon/gdm-slave.c
++++ gdm-3.12.2/daemon/gdm-slave.c
+@@ -429,6 +429,11 @@ gdm_slave_stop (GdmSlave *slave)
+ 
+         g_debug ("GdmSlave: stopping slave");
+ 
++        gdm_run_script (GDMCONFDIR "/PrimeOff", "root",
++                        slave->priv->display_name,
++                        NULL, /* hostname */
++                        slave->priv->display_x11_authority_file);
++
+         g_object_ref (slave);
+ 
+         ret = GDM_SLAVE_GET_CLASS (slave)->stop (slave);
+@@ -537,7 +542,7 @@ gdm_slave_parse_enriched_login (GdmSlave
+         g_debug ("GdmSlave: running '%s' to acquire auto/timed username", command);
+         g_free (command);
+ 
+-        env = gdm_get_script_environment (username,
++        env = gdm_get_script_environment ((g_strcmp0 (username, "root") == 0)?NULL:username,
+                                           slave->priv->display_name,
+                                           slave->priv->display_hostname,
+                                           slave->priv->display_x11_authority_file);
+Index: gdm-3.12.2/data/PrimeOff
+===================================================================
+--- /dev/null
++++ gdm-3.12.2/data/PrimeOff
+@@ -0,0 +1,6 @@
++#!/bin/sh
++
++primeswitch=/sbin/prime-switch
++if [ -f "$primeswitch" ]; then
++    $primeswitch
++fi
+Index: gdm-3.12.2/daemon/gdm-server.c
+===================================================================
+--- gdm-3.12.2.orig/daemon/gdm-server.c
++++ gdm-3.12.2/daemon/gdm-server.c
+@@ -189,6 +189,11 @@ gdm_server_ready (GdmServer *server)
+                         NULL, /* hostname */
+                         server->priv->auth_file);
+ 
++        gdm_run_script (GDMCONFDIR "/Prime", "root",
++                        server->priv->display_name,
++                        NULL, /* hostname */
++                        server->priv->auth_file);
++
+         g_signal_emit (server, signals[READY], 0);
+ }
+ 

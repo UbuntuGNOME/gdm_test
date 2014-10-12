@@ -1,0 +1,13 @@
+01_language.patch
+#02_xnest-wrapper.patch
+#11_xephyr_nested.patch
+#30_don_t_save_failsafe_session.patch
+#33-multi-keyboard-layouts.patch
+#42_no_ecryptfs_autologin.patch
+90_config_comments.patch
+ubuntu_run_xsession.d.patch
+#ubuntu_guest_session.patch
+ubuntu_upstart_event.patch
+ubuntu_xresources_is_a_dir.patch
+ubuntu_nvidia_prime.patch
+revert_override_LANG_with_accountservices.patch
